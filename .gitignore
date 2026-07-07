@@ -1,0 +1,21 @@
+# KiCad backups / autosave
+*-backups/
+*.kicad_sch-bak
+*.kicad_pcb-bak
+_autosave-*
+fp-info-cache
+
+# KiCad lock files
+*.lck
+
+# KiCad local project settings (user/machine specific, not for VCS)
+*.kicad_prl
+
+# Editor / OS
+.history/
+Thumbs.db
+*.log
+
+# Manual archive exports (kept as loose files instead)
+*.rar
+*.zip
