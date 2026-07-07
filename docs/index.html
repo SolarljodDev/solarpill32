@@ -327,6 +327,7 @@ const CONNECTORS = [
       { id:'tim1comp', label:'TIM1 — комплементарные каналы + BKIN', default:true, assign:{15:'TIM1_BKIN',3:'TIM1_CH1N',5:'TIM1_CH2N',7:'TIM1_CH3N'} },
       { id:'spi2', label:'SPI2 (без ремапа, фиксированные пины)', assign:{15:'SPI2_NSS',3:'SPI2_SCK',5:'SPI2_MISO',7:'SPI2_MOSI'} },
       { id:'usart3partial', label:'USART3 — CK/CTS/RTS (частично)', assign:{15:'USART3_CK',3:'USART3_CTS',5:'USART3_RTS'}, note:'TX/RX самого USART3 — на J4 (PB10/PB11); пин 7 (PB15) в этом варианте остаётся свободным' },
+      { id:'opa_j2', label:'OPA1-4 — «+»-входы (CH0P) четырёх ОУ', assign:{15:'OPA4_CH0P',3:'OPA3_CH0P',5:'OPA2_CH0P',7:'OPA1_CH0P'}, note:'выходы и «−»-входы этих же ОУ — на J3/J4, см. заметки ниже' },
     ]},
     { label: 'PA8 / PA9 / PA10', options: [
       { id:'tim1main', label:'TIM1 — основные каналы CH1/CH2/CH3', default:true, assign:{9:'TIM1_CH1',11:'TIM1_CH2',13:'TIM1_CH3'} },
@@ -337,10 +338,11 @@ const CONNECTORS = [
   notes: [
     'Пин 1 (PA12) — не переключается галкой, это резистор-мультиплексор ETR/USB, см. заметку в начале страницы.',
     '<b>Кросс-разъём:</b> «USART3 CK/CTS/RTS» здесь дополняет TX/RX на J4 — это части одного и того же USART3, они не конфликтуют, а работают вместе. А вот «USART1 без ремапа» здесь конфликтует с USART1(remap) на J1 — включай только одно из двух.',
+    '<b>Кросс-разъём:</b> если на J3 включить «TIM1 (частичный ремап 1)», BKIN/CH1N/CH2N/CH3N переезжают туда с этого разъёма — пины 15,3,5,7 здесь освобождаются от TIM1 целиком (тогда SPI2/USART3/OPA здесь можно включать без оглядки на TIM1).',
   ],
 },
 {
-  id: 'J3', title: 'SPI1 / TIM3', specs: 'Conn_02x05_Odd_Even<br>IDC-Header 2×5, 2.54мм',
+  id: 'J3', title: 'SPI1 / TIM3 / DAC', specs: 'Conn_02x05_Odd_Even<br>IDC-Header 2×5, 2.54мм',
   pins: [
     {num:1, kind:'gpio', gpio:'PB0'}, {num:2, kind:'gpio', gpio:'PB1'},
     {num:3, kind:'gpio', gpio:'PA6'}, {num:4, kind:'gnd'},
@@ -353,11 +355,16 @@ const CONNECTORS = [
       { id:'spi1', label:'SPI1 (без ремапа)', assign:{7:'SPI1_NSS',5:'SPI1_SCK',3:'SPI1_MISO',9:'SPI1_MOSI'}, note:'пины 1,2 (PB0/PB1) в этом варианте свободны как GPIO' },
       { id:'tim3full', label:'TIM3 — все 4 канала', assign:{3:'TIM3_CH1',9:'TIM3_CH2',1:'TIM3_CH3',2:'TIM3_CH4'}, note:'пины 5,7 (PA5/PA4) в этом варианте свободны как GPIO' },
       { id:'adc1_j3', label:'ADC1 — аналоговые входы (все 6 пинов)', assign:{7:'ADC1_IN4',5:'ADC1_IN5',3:'ADC1_IN6',9:'ADC1_IN7',1:'ADC1_IN8',2:'ADC1_IN9'} },
+      { id:'dac1', label:'DAC1_OUT (только PA4)', assign:{7:'DAC1_OUT'} },
+      { id:'dac2', label:'DAC2_OUT (только PA5)', assign:{5:'DAC2_OUT'} },
+      { id:'tim1_partial', label:'TIM1 — комплементарные каналы (частичный ремап 1)', assign:{3:'TIM1_BKIN',9:'TIM1_CH1N',1:'TIM1_CH2N',2:'TIM1_CH3N'}, note:'альтернатива тем же 4 сигналам на J2 (пины 15,3,5,7) — включай только там или тут, не оба сразу' },
+      { id:'opa_j3', label:'OPA1/OPA2/OPA4 — входы (CH1 обоих полюсов + CH0−)', assign:{1:'OPA1_CH1P',3:'OPA1_CH1N',9:'OPA2_CH1P',2:'OPA4_CH0N'}, note:'выходы этих же ОУ (OPA1_OUT0, OPA2_OUT0, OPA4_OUT0) — на J4' },
+      { id:'opa2_ch1n', label:'OPA2 — «−»-вход CH1 (только PA5)', assign:{5:'OPA2_CH1N'}, note:'делит пин с DAC2_OUT — либо ЦАП, либо это' },
     ]},
   ],
   notes: [
     'SPI1 и TIM3 делят пины 3 и 9 (PA6/PA7) — включай только один вариант целиком.',
-    'PA5 и PA6/PA7 по твоей таблице ещё связаны со встроенными операционными усилителями (OPA2) — точное назначение input/output каналов не переносил в чекбоксы, не хватило уверенности в разметке таблицы; сверься с даташитом CH32V303 по OPA2, если нужна аналоговая часть.',
+    'DAC1/DAC2 независимы друг от друга (разные пины), но каждый конфликтует со «своим» пином SPI1 (NSS или SCK).',
   ],
 },
 {
@@ -373,17 +380,19 @@ const CONNECTORS = [
     { label: 'PB10 / PB11', options: [
       { id:'i2c2', label:'I2C2 (всегда фиксирован на этих пинах)', assign:{1:'I2C2_SCL',9:'I2C2_SDA'} },
       { id:'usart3txrx', label:'USART3 — TX/RX', assign:{1:'USART3_TX',9:'USART3_RX'}, note:'CK/CTS/RTS этого же USART3 — на J2, если понадобятся' },
+      { id:'opa_j4a', label:'OPA1/OPA2 — «−»-входы (CH0N)', assign:{1:'OPA2_CH0N',9:'OPA1_CH0N'} },
     ]},
     { label: 'PA0 / PA1 / PA2 / PA3', options: [
       { id:'usart2', label:'USART2 (без ремапа, полностью)', assign:{3:'USART2_TX',2:'USART2_RX',5:'USART2_RTS',7:'USART2_CTS'} },
       { id:'tim2full', label:'TIM2 — все 4 канала', assign:{7:'TIM2_CH1',5:'TIM2_CH2',3:'TIM2_CH3',2:'TIM2_CH4'} },
       { id:'adc1_j4', label:'ADC1 — аналоговые входы (все 4 пина)', assign:{7:'ADC1_IN0',5:'ADC1_IN1',3:'ADC1_IN2',2:'ADC1_IN3'} },
+      { id:'opa_j4b', label:'OPA1-4 — выходы (OUT0, все 4 ОУ)', assign:{7:'OPA4_OUT0',5:'OPA3_OUT0',3:'OPA2_OUT0',2:'OPA1_OUT0'} },
     ]},
   ],
   notes: [
     'I2C2 на PB10/PB11 не имеет альтернативного ремапа — это единственное штатное расположение I2C2 на этом МК.',
     '<b>Кросс-разъём:</b> «USART3 TX/RX» здесь работает в паре с «USART3 CK/CTS/RTS» на J2 — вместе это полный USART3.',
-    'PA0 по твоей таблице также связан с операционным усилителем (OPA4, выход) — в чекбоксы не включал, см. заметку про OPA на J3.',
+    '<b>Кросс-разъём:</b> «OPA выходы» здесь и «OPA входы» на J2/J3 — части одних и тех же 4 операционных усилителей (OPA1-4). У OPA3 «−»-вход (CH0N, PB2) на разъёмы не выведен.',
   ],
 },
 {
