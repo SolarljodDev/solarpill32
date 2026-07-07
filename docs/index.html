@@ -257,17 +257,17 @@ footer p { margin: 0.3rem 0; }
           <tr>
             <td class="ref">J2</td><td>2×8 IDC</td><td>16</td>
             <td>TIM1, все 8 сигналов (без ремапа)</td>
-            <td class="remap">PB12–15: SPI2 или USART3 (CK/CTS/RTS); PA8–10: USART1 без ремапа (partial)</td>
+            <td class="remap">PB12–15: SPI2 или USART3 (CK/CTS/RTS); PA8–10: USART1 без ремапа (partial) или MCO (PA8)</td>
           </tr>
           <tr>
             <td class="ref">J3</td><td>2×5 IDC</td><td>10</td>
             <td>Свободные GPIO (доступны как SPI1)</td>
-            <td class="remap">SPI1 (PA4-7) <b>или</b> TIM3 полностью (PA6,PA7,PB0,PB1)</td>
+            <td class="remap">SPI1 (PA4-7) <b>или</b> TIM3 полностью (PA6,PA7,PB0,PB1) <b>или</b> ADC1 IN4-9 (все 6 пинов)</td>
           </tr>
           <tr>
             <td class="ref">J4</td><td>2×5 IDC</td><td>10</td>
             <td>Свободные GPIO</td>
-            <td class="remap">PB10/11: I2C2 или USART3 TX/RX; PA0-3: USART2 или TIM2</td>
+            <td class="remap">PB10/11: I2C2 или USART3 TX/RX; PA0-3: USART2, TIM2 <b>или</b> ADC1 IN0-3</td>
           </tr>
           <tr>
             <td class="ref">J5</td><td>2×5 IDC</td><td>10</td>
@@ -330,7 +330,8 @@ const CONNECTORS = [
     ]},
     { label: 'PA8 / PA9 / PA10', options: [
       { id:'tim1main', label:'TIM1 — основные каналы CH1/CH2/CH3', default:true, assign:{9:'TIM1_CH1',11:'TIM1_CH2',13:'TIM1_CH3'} },
-      { id:'usart1default', label:'USART1 (без ремапа, стандартное положение)', assign:{11:'USART1_TX',13:'USART1_RX'}, note:'пин 9 (PA8) остаётся свободным (или MCO); конфликтует с J1 — там USART1 обязательно должен быть в режиме remap' },
+      { id:'usart1default', label:'USART1 (без ремапа, стандартное положение)', assign:{11:'USART1_TX',13:'USART1_RX'}, note:'пин 9 (PA8) остаётся свободным; конфликтует с J1 — там USART1 обязательно должен быть в режиме remap' },
+      { id:'mco', label:'MCO — вывод тактового сигнала наружу (только PA8)', assign:{9:'MCO'} },
     ]},
   ],
   notes: [
@@ -351,10 +352,12 @@ const CONNECTORS = [
     { label: 'PA4 / PA5 / PA6 / PA7 / PB0 / PB1', options: [
       { id:'spi1', label:'SPI1 (без ремапа)', assign:{7:'SPI1_NSS',5:'SPI1_SCK',3:'SPI1_MISO',9:'SPI1_MOSI'}, note:'пины 1,2 (PB0/PB1) в этом варианте свободны как GPIO' },
       { id:'tim3full', label:'TIM3 — все 4 канала', assign:{3:'TIM3_CH1',9:'TIM3_CH2',1:'TIM3_CH3',2:'TIM3_CH4'}, note:'пины 5,7 (PA5/PA4) в этом варианте свободны как GPIO' },
+      { id:'adc1_j3', label:'ADC1 — аналоговые входы (все 6 пинов)', assign:{7:'ADC1_IN4',5:'ADC1_IN5',3:'ADC1_IN6',9:'ADC1_IN7',1:'ADC1_IN8',2:'ADC1_IN9'} },
     ]},
   ],
   notes: [
     'SPI1 и TIM3 делят пины 3 и 9 (PA6/PA7) — включай только один вариант целиком.',
+    'PA5 и PA6/PA7 по твоей таблице ещё связаны со встроенными операционными усилителями (OPA2) — точное назначение input/output каналов не переносил в чекбоксы, не хватило уверенности в разметке таблицы; сверься с даташитом CH32V303 по OPA2, если нужна аналоговая часть.',
   ],
 },
 {
@@ -374,11 +377,13 @@ const CONNECTORS = [
     { label: 'PA0 / PA1 / PA2 / PA3', options: [
       { id:'usart2', label:'USART2 (без ремапа, полностью)', assign:{3:'USART2_TX',2:'USART2_RX',5:'USART2_RTS',7:'USART2_CTS'} },
       { id:'tim2full', label:'TIM2 — все 4 канала', assign:{7:'TIM2_CH1',5:'TIM2_CH2',3:'TIM2_CH3',2:'TIM2_CH4'} },
+      { id:'adc1_j4', label:'ADC1 — аналоговые входы (все 4 пина)', assign:{7:'ADC1_IN0',5:'ADC1_IN1',3:'ADC1_IN2',2:'ADC1_IN3'} },
     ]},
   ],
   notes: [
     'I2C2 на PB10/PB11 не имеет альтернативного ремапа — это единственное штатное расположение I2C2 на этом МК.',
     '<b>Кросс-разъём:</b> «USART3 TX/RX» здесь работает в паре с «USART3 CK/CTS/RTS» на J2 — вместе это полный USART3.',
+    'PA0 по твоей таблице также связан с операционным усилителем (OPA4, выход) — в чекбоксы не включал, см. заметку про OPA на J3.',
   ],
 },
 {
