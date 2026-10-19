@@ -137,7 +137,48 @@ table.overview td.remap { color: var(--ink-muted); font-size: 0.85rem; }
 .card-head .specs { font-family: 'Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-muted); text-align: right; white-space: nowrap; }
 
 .ribbon-wrap { padding: 1.15rem 1.25rem 0.4rem; background: var(--surface-2); }
-.ribbon-cable { position: relative; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); padding: 0.6rem 0.6rem 0.7rem; }
+.ribbon-cable {
+  --idc-wall: 8px;
+  --idc-side-wall: 12px;
+  position: relative;
+  border: var(--idc-wall) solid var(--line-strong);
+  border-left-width: var(--idc-side-wall);
+  border-right-width: var(--idc-side-wall);
+  border-radius: 5px;
+  background: var(--surface);
+  /* Leave half a pin pitch at each end for the IDC end shoulders. */
+  padding: 0.7rem calc(50% / (var(--idc-columns) + 1));
+  box-shadow: inset 0 0 0 1px var(--ink-muted), 0 2px 0 var(--line);
+}
+/* Central polarizing slot in the top wall of the IDC shroud. */
+.ribbon-cable::before {
+  content: '';
+  position: absolute;
+  top: calc(-1 * var(--idc-wall));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24%;
+  height: var(--idc-wall);
+  border: 1px solid var(--ink-muted);
+  border-top: 0;
+  border-radius: 0 0 2px 2px;
+  background: var(--surface-2);
+  pointer-events: none;
+}
+/* Side openings cut only through the shroud, clear of the pin area. */
+.idc-side-cut {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--idc-side-wall);
+  height: 30%;
+  border-top: 1px solid var(--ink-muted);
+  border-bottom: 1px solid var(--ink-muted);
+  background: var(--surface-2);
+  pointer-events: none;
+}
+.idc-side-cut.left { left: calc(-1 * var(--idc-side-wall)); border-right: 1px solid var(--ink-muted); }
+.idc-side-cut.right { right: calc(-1 * var(--idc-side-wall)); border-left: 1px solid var(--ink-muted); }
 .ribbon-row { display: grid; gap: 0.4rem; }
 .ribbon-row + .ribbon-row { margin-top: 0.4rem; }
 .pin { position: relative; border: 1px solid var(--line-strong); border-radius: 3px; padding: 0.3rem 0.15rem 0.35rem; text-align: center; background: var(--surface); transition: background .15s, border-color .15s, outline-color .15s; }
@@ -157,9 +198,7 @@ table.overview td.remap { color: var(--ink-muted); font-size: 0.85rem; }
 .pin.conflict .lbl { color: var(--danger); }
 @media (prefers-reduced-motion: reduce) { .pin.conflict { animation: none; } }
 @keyframes pulse { 0%,100% { outline-color: var(--danger); } 50% { outline-color: transparent; } }
-.pin.pin1::before { content: ''; position: absolute; left: -1px; top: -1px; bottom: -1px; width: 4px; background: var(--danger); border-radius: 3px 0 0 3px; }
 .ribbon-caption { display: flex; justify-content: space-between; font-family: 'Plex Mono', monospace; font-size: 0.66rem; color: var(--ink-muted); padding: 0.45rem 0.15rem 0.15rem; }
-.ribbon-caption .pin1note { color: var(--danger); }
 
 .periph-panel { padding: 0.4rem 1.25rem 1.1rem; display: flex; flex-direction: column; gap: 0.9rem; }
 .periph-group { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
@@ -432,8 +471,16 @@ function renderConnector(conn) {
   ribbonWrap.className = 'ribbon-wrap';
   const cable = document.createElement('div');
   cable.className = 'ribbon-cable';
-  const oddPins = conn.pins.filter(p => p.num % 2 === 1);
-  const evenPins = conn.pins.filter(p => p.num % 2 === 0);
+  cable.style.setProperty('--idc-columns', conn.pins.length / 2);
+  for (const side of ['left', 'right']) {
+    const cut = document.createElement('span');
+    cut.className = 'idc-side-cut ' + side;
+    cut.setAttribute('aria-hidden', 'true');
+    cable.appendChild(cut);
+  }
+  // IDC: 1 above 2 at the right, then 3 above 4 to their left, etc.
+  const oddPins = conn.pins.filter(p => p.num % 2 === 1).sort((a, b) => b.num - a.num);
+  const evenPins = conn.pins.filter(p => p.num % 2 === 0).sort((a, b) => b.num - a.num);
   const rowTop = document.createElement('div');
   rowTop.className = 'ribbon-row';
   rowTop.style.gridTemplateColumns = `repeat(${oddPins.length},1fr)`;
@@ -447,7 +494,7 @@ function renderConnector(conn) {
   ribbonWrap.appendChild(cable);
   const caption = document.createElement('div');
   caption.className = 'ribbon-caption';
-  caption.innerHTML = '<span>ряд нечётных пинов сверху</span><span class="pin1note">▍пин 1</span>';
+  caption.textContent = 'IDC · ключ сверху · нечётные пины сверху, чётные снизу; нумерация справа налево';
   ribbonWrap.appendChild(caption);
   card.appendChild(ribbonWrap);
 
@@ -527,7 +574,7 @@ function renderConnector(conn) {
 function makePinEl(conn, p) {
   const el = document.createElement('div');
   el.id = 'pin-' + conn.id + '-' + p.num;
-  el.className = 'pin ' + (p.num === 1 ? 'pin1 ' : '') + (p.kind === 'gnd' ? 'gnd' : p.kind === 'power' ? 'power' : 'gpio');
+  el.className = 'pin ' + (p.kind === 'gnd' ? 'gnd' : p.kind === 'power' ? 'power' : 'gpio');
   el.innerHTML = `<span class="num">${p.num}</span><span class="lbl">${p.kind === 'gnd' ? 'GND' : p.kind === 'power' ? '+5V' : p.gpio}</span>`;
   return el;
 }
@@ -554,24 +601,24 @@ function update(conn) {
     const pinEl = document.getElementById('pin-' + conn.id + '-' + p.num);
     const row = document.createElement('tr');
     let funcText, funcClass = '', rowClass = '';
-    if (p.kind === 'gnd') { funcText = 'GND'; pinEl.className = 'pin gnd' + (p.num === 1 ? ' pin1' : ''); }
-    else if (p.kind === 'power') { funcText = '+5V'; pinEl.className = 'pin power' + (p.num === 1 ? ' pin1' : ''); }
+    if (p.kind === 'gnd') { funcText = 'GND'; pinEl.className = 'pin gnd'; }
+    else if (p.kind === 'power') { funcText = '+5V'; pinEl.className = 'pin power'; }
     else {
       const c = claims[p.num];
       if (!c || c.length === 0) {
         funcText = 'свободен (GPIO)';
-        pinEl.className = 'pin gpio' + (p.num === 1 ? ' pin1' : '');
+        pinEl.className = 'pin gpio';
         pinEl.querySelector('.lbl').textContent = p.gpio;
       } else if (c.length === 1) {
         funcText = c[0].sig;
         funcClass = 'is-assigned';
-        pinEl.className = 'pin assigned' + (p.num === 1 ? ' pin1' : '');
+        pinEl.className = 'pin assigned';
         pinEl.querySelector('.lbl').textContent = c[0].sig;
       } else {
         funcText = c.map(x => x.sig).join(' vs ');
         rowClass = 'is-conflict';
         anyConflict = true;
-        pinEl.className = 'pin conflict' + (p.num === 1 ? ' pin1' : '');
+        pinEl.className = 'pin conflict';
         pinEl.querySelector('.lbl').textContent = '⚠ конфликт';
       }
     }
